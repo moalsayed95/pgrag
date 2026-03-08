@@ -74,14 +74,56 @@ pg-rag/
 
 ## Quick Start
 
+There are two ways to run PG-RAG: **Docker Compose** (easiest) or **manually** for local development.
+
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
-- [Node.js](https://nodejs.org/) (v18+)
 - An [OpenAI API key](https://platform.openai.com/api-keys)
 
-### 1. Start PostgreSQL
+---
+
+### Option A: Docker Compose (full stack)
+
+This starts all three services (PostgreSQL, Backend, Frontend) with a single command.
+
+**1. Create your environment file**
+
+```bash
+cp .env.example app/backend/.env
+# Edit app/backend/.env and add your OPENAI_API_KEY
+```
+
+**2. Start everything**
+
+```bash
+docker compose up -d --build
+```
+
+**3. Open the app**
+
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000/docs`
+
+**4. Stop everything**
+
+```bash
+docker compose down            # stop containers
+docker compose down -v         # stop + delete database volume
+```
+
+---
+
+### Option B: Local Development
+
+For local development with hot reload, run the backend and frontend manually.
+
+#### Additional Prerequisites
+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
+- [Node.js](https://nodejs.org/) (v18+)
+
+#### 1. Start PostgreSQL
 
 ```bash
 docker compose up -d
@@ -89,7 +131,7 @@ docker compose up -d
 
 This runs PostgreSQL 16 with the pgvector extension pre-installed (using the `pgvector/pgvector:pg16` image).
 
-### 2. Start the Backend
+#### 2. Start the Backend
 
 ```bash
 cd app/backend
@@ -105,7 +147,7 @@ On first startup, the app automatically:
 - Enables the `vector` extension in PostgreSQL
 - Creates the `documents` and `document_chunks` tables
 
-### 3. Start the Frontend
+#### 3. Start the Frontend
 
 ```bash
 cd app/frontend
@@ -146,6 +188,10 @@ Response:
   ]
 }
 ```
+
+## Deploy with Kubernetes (Minikube)
+
+Want to deploy on Kubernetes locally? See [k8s/README.md](k8s/README.md) for step-by-step instructions to deploy the full stack on Minikube — works on macOS, Windows, and Linux.
 
 ## Why PostgreSQL for RAG?
 
