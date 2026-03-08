@@ -1,0 +1,9 @@
+PostgreSQL is a powerful, open source object-relational database system. It has more than 35 years of active development and has earned a strong reputation for reliability, feature robustness, and performance.
+
+pgvector is an open-source extension for PostgreSQL that adds support for vector similarity search. It allows you to store vector embeddings alongside your regular data and perform efficient similarity searches using various distance metrics including L2 distance, inner product, and cosine distance.
+
+RAG stands for Retrieval Augmented Generation. It is a technique that enhances Large Language Models by retrieving relevant context from a knowledge base before generating a response. This helps reduce hallucinations and grounds the model's answers in factual, domain-specific information.
+
+The typical RAG pipeline works as follows: First, documents are split into chunks. Each chunk is converted into a vector embedding using an embedding model. These embeddings are stored in a vector database. When a user asks a question, the question is also embedded, and the most similar document chunks are retrieved using vector similarity search. Finally, these retrieved chunks are passed as context to the LLM along with the user's question to generate an informed answer.
+
+Using PostgreSQL with pgvector for RAG has several advantages: you don't need a separate vector database, you can use SQL for complex queries combining vector search with traditional filters, and you benefit from PostgreSQL's ACID compliance, mature ecosystem, and battle-tested reliability. For indexing, pgvector supports both IVFFlat and HNSW indexes for approximate nearest neighbor search, making it suitable for production workloads.

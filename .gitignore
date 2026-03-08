@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+k8s/secret.yaml
+!k8s/secret.example.yaml
+
+# Plan (internal)
+plan.md
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

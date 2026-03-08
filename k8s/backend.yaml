@@ -1,0 +1,71 @@
+# ──────────────────────────────────────────────
+# FastAPI Backend — Deployment + Service
+# ──────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: pgrag-backend:latest
+          imagePullPolicy: Never    # use locally-built image in minikube
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://postgres:postgres@postgres:5432/pgrag"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pgrag-secrets
+                  key: openai-api-key
+            - name: OPENAI_EMBEDDING_MODEL
+              value: "text-embedding-3-small"
+            - name: OPENAI_CHAT_MODEL
+              value: "gpt-4o-mini"
+          # The backend exposes GET /api/health
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+# Service — frontend nginx proxies /api/ to  backend:8000
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP          # internal only — reached via the frontend proxy
