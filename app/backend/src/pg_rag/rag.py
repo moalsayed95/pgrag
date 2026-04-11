@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from openai import AsyncOpenAI
@@ -8,12 +10,19 @@ from pg_rag.embeddings import get_embedding
 settings = get_settings()
 client = AsyncOpenAI(api_key=settings.openai_api_key)
 
-SYSTEM_PROMPT = """You are a helpful assistant that answers questions based on the provided context.
+INSTRUCTIONS = """You are a helpful assistant that answers questions based on the provided context.
 Use ONLY the context below to answer. If the context doesn't contain enough information, say so.
 Be concise and accurate.
 
 Context:
 {context}"""
+
+
+def _build_context(chunks) -> str:
+    return "\n\n---\n\n".join(
+        f"[Source: {row.filename}, chunk {row.chunk_index}]\n{row.content}"
+        for row in chunks
+    )
 
 
 async def retrieve_chunks(db: AsyncSession, question: str, top_k: int = 5):
@@ -38,18 +47,30 @@ async def retrieve_chunks(db: AsyncSession, question: str, top_k: int = 5):
 
 async def generate_answer(question: str, chunks) -> str:
     """Build a prompt from retrieved chunks and generate an answer."""
-    context = "\n\n---\n\n".join(
-        f"[Source: {row.filename}, chunk {row.chunk_index}]\n{row.content}"
-        for row in chunks
-    )
+    context = _build_context(chunks)
 
-    response = await client.chat.completions.create(
+    response = await client.responses.create(
         model=settings.openai_chat_model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT.format(context=context)},
-            {"role": "user", "content": question},
-        ],
+        instructions=INSTRUCTIONS.format(context=context),
+        input=question,
         temperature=0.2,
     )
 
-    return response.choices[0].message.content
+    return response.output_text
+
+
+async def generate_answer_stream(question: str, chunks) -> AsyncGenerator[str, None]:
+    """Stream text deltas from the Responses API."""
+    context = _build_context(chunks)
+
+    stream = await client.responses.create(
+        model=settings.openai_chat_model,
+        instructions=INSTRUCTIONS.format(context=context),
+        input=question,
+        temperature=0.2,
+        stream=True,
+    )
+
+    async for event in stream:
+        if event.type == "response.output_text.delta":
+            yield event.delta
