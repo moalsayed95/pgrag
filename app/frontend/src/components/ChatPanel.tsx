@@ -17,20 +17,11 @@ export default function ChatPanel() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  const toggleSources = (index: number) => {
-    setExpandedSources((prev) => {
-      const next = new Set(prev);
-      next.has(index) ? next.delete(index) : next.add(index);
-      return next;
-    });
-  };
 
   const handleAsk = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,22 +117,18 @@ export default function ChatPanel() {
             </div>
             {msg.sources && msg.sources.length > 0 && (
               <div className="sources">
-                <button className="sources-toggle" onClick={() => toggleSources(i)}>
-                  {expandedSources.has(i) ? "▾" : "▸"} {msg.sources.length} sources
-                </button>
-                {expandedSources.has(i) && (
-                  <div className="source-list">
-                    {msg.sources.map((s, j) => (
-                      <div key={j} className="source-item">
-                        <div className="source-header">
-                          <span className="source-file">📄 {s.document_filename}</span>
-                          <span className="source-score">{Math.round(s.score * 100)}% match</span>
-                        </div>
-                        <div className="source-content">{s.content}</div>
+                <div className="sources-toggle">📚 {msg.sources.length} source{msg.sources.length !== 1 ? "s" : ""} used</div>
+                <div className="source-list">
+                  {msg.sources.map((s, j) => (
+                    <div key={j} className="source-item">
+                      <div className="source-header">
+                        <span className="source-file">📄 {s.document_filename}</span>
+                        <span className="source-score">{Math.round(s.score * 100)}% match</span>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="source-content">{s.content}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
