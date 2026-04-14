@@ -30,3 +30,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pg_rag"]
+
+[tool.uv.workspace]
+members = [
+    "learn_mcp",
+]
