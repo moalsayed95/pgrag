@@ -17,6 +17,22 @@ services:
       timeout: 5s
       retries: 5
 
+  mcp:
+    build: ./app/backend
+    container_name: pgrag-mcp
+    restart: unless-stopped
+    command: ["uv", "run", "python", "-m", "pg_rag.mcp_integration.server"]
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./app/backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/pgrag
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
     build: ./app/backend
     container_name: pgrag-backend
@@ -27,9 +43,14 @@ services:
       - ./app/backend/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/pgrag
+      MCP_SERVER_URL: http://mcp:8001/mcp
+      MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-}
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
+      mcp:
+        condition: service_started
 
   frontend:
     build: ./app/frontend

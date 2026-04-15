@@ -18,7 +18,29 @@ interface Message {
   done?: boolean;
   /** "grounded" if the backend returned sources, "general" if it answered without retrieval. */
   mode?: "grounded" | "general";
+  /** Which backend pipeline produced the answer. */
+  pipeline?: Pipeline;
 }
+
+type Pipeline = "function" | "mcp" | "mcp-native";
+
+const PIPELINE_ENDPOINT: Record<Pipeline, string> = {
+  function: "/api/chat/stream",
+  mcp: "/api/chat/stream-mcp",
+  "mcp-native": "/api/chat/stream-mcp-native",
+};
+
+const PIPELINE_LABEL: Record<Pipeline, string> = {
+  function: "fn-call",
+  mcp: "mcp",
+  "mcp-native": "mcp-native",
+};
+
+const PIPELINE_PILL_SUFFIX: Record<Pipeline, string> = {
+  function: " · via fn-call",
+  mcp: " · via MCP",
+  "mcp-native": " · via MCP (native)",
+};
 
 const SUGGESTIONS = [
   "Summarize the key points of the uploaded documents",
@@ -30,6 +52,7 @@ export default function ChatPanel() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pipeline, setPipeline] = useState<Pipeline>("function");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,16 +73,17 @@ export default function ChatPanel() {
     if (!q || loading) return;
 
     const userMsg: Message = { role: "user", content: q, done: true };
+    const activePipeline = pipeline;
     setMessages((prev) => [
       ...prev,
       userMsg,
-      { role: "assistant", content: "", done: false },
+      { role: "assistant", content: "", done: false, pipeline: activePipeline },
     ]);
     setQuestion("");
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat/stream", {
+      const res = await fetch(PIPELINE_ENDPOINT[activePipeline], {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q }),
@@ -167,6 +191,10 @@ export default function ChatPanel() {
 
   return (
     <div className="chat">
+      <div className="chat-header">
+        <span className="chat-header-label">Retrieval pipeline</span>
+        <PipelineToggle value={pipeline} onChange={setPipeline} disabled={loading} />
+      </div>
       <div className="transcript">
         {messages.length === 0 && !loading ? (
           <div className="empty">
@@ -284,7 +312,11 @@ function MessageBlock({ msg }: { msg: Message }) {
       )}
 
       {isAssistant && msg.done && msg.mode && (
-        <ModePill mode={msg.mode} count={msg.sources?.length ?? 0} />
+        <ModePill
+          mode={msg.mode}
+          count={msg.sources?.length ?? 0}
+          pipeline={msg.pipeline}
+        />
       )}
 
       {isAssistant && msg.sources && msg.sources.length > 0 && (
@@ -297,18 +329,51 @@ function MessageBlock({ msg }: { msg: Message }) {
 function ModePill({
   mode,
   count,
+  pipeline,
 }: {
   mode: "grounded" | "general";
   count: number;
+  pipeline?: Pipeline;
 }) {
+  const via = pipeline ? PIPELINE_PILL_SUFFIX[pipeline] : "";
   if (mode === "grounded") {
     return (
       <span className={`mode grounded`}>
         <Brackets size={11} /> Grounded · {count} source{count !== 1 ? "s" : ""}
+        {via}
       </span>
     );
   }
-  return <span className="mode general">General knowledge</span>;
+  return <span className="mode general">General knowledge{via}</span>;
+}
+
+function PipelineToggle({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Pipeline;
+  onChange: (p: Pipeline) => void;
+  disabled?: boolean;
+}) {
+  const options: Pipeline[] = ["function", "mcp", "mcp-native"];
+  return (
+    <div className="pipeline-toggle" role="tablist" aria-label="Retrieval pipeline">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          role="tab"
+          aria-selected={value === opt}
+          className={`pipeline-option${value === opt ? " is-active" : ""}`}
+          onClick={() => onChange(opt)}
+          disabled={disabled}
+        >
+          {PIPELINE_LABEL[opt]}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function SourcesBlock({ sources }: { sources: Source[] }) {

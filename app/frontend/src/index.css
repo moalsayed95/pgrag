@@ -585,10 +585,57 @@ body::after {
 
 .chat {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
   min-height: 0;
   background:
     radial-gradient(60% 60% at 50% 0%, var(--ink-1) 0%, var(--ink-0) 70%);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 40px 0;
+}
+.chat-header-label {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-muted);
+}
+.pipeline-toggle {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--ink-2);
+}
+.pipeline-option {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--paper-dim);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 120ms var(--ease), background 120ms var(--ease);
+}
+.pipeline-option:hover:not(:disabled):not(.is-active) {
+  color: var(--paper);
+}
+.pipeline-option.is-active {
+  background: var(--amber-wash);
+  color: var(--amber);
+}
+.pipeline-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .transcript {
