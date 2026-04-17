@@ -23,7 +23,6 @@ TOOLS = [
                 "song":   {"type": "string", "description": "The song title."},
             },
             "required": ["artist", "song"],
-            "additionalProperties": False,
         },
     }
 ]
@@ -33,42 +32,41 @@ TOOLS = [
 user_message = "Play Thriller by Michael Jackson"
 print(f"User: {user_message}\n")
 
+# Keep a running input list — we'll append to it across both API calls
+input_list = [{"role": "user", "content": user_message}]
+
 response = client.responses.create(
     model="gpt-4o-mini",
     tools=TOOLS,
-    input=user_message,
+    input=input_list,
 )
+
+# Append OpenAI's full output turn to the conversation history
+input_list += response.output
 
 # ── 4. Check if OpenAI wants to call a function ───────────────────────────────
 
-tool_call = next(
-    (item for item in response.output if item.type == "function_call"),
-    None,
+for item in response.output:
+    if item.type == "function_call":
+        args = json.loads(item.arguments)
+        print(f"OpenAI wants to call: {item.name}({args})")
+
+        # ── 5. Your code runs the function ────────────────────────────────────
+        result = play_song(**args)
+        print(f"Function returned: {result}\n")
+
+        # ── 6. Append the result so OpenAI can see it ─────────────────────────
+        input_list.append({
+            "type": "function_call_output",
+            "call_id": item.call_id,
+            "output": result,
+        })
+
+# ── 7. Second call: OpenAI writes the final answer using the tool result ──────
+final = client.responses.create(
+    model="gpt-4o-mini",
+    instructions="Confirm the song is now playing based on the tool result.",
+    tools=TOOLS,
+    input=input_list,
 )
-
-if tool_call:
-    args = json.loads(tool_call.arguments)
-    print(f"OpenAI wants to call: {tool_call.name}({args})")
-
-    # ── 5. Your code runs the function ────────────────────────────────────────
-    result = play_song(**args)
-    print(f"Function returned: {result}\n")
-
-    # ── 6. Send result back — OpenAI writes the final answer ──────────────────
-    final = client.responses.create(
-        model="gpt-4o-mini",
-        tools=TOOLS,
-        input=[
-            {"role": "user", "content": user_message},
-            tool_call,                                   # OpenAI's tool-call turn
-            {
-                "type": "function_call_output",
-                "call_id": tool_call.call_id,
-                "output": result,
-            },
-        ],
-    )
-    print(f"Assistant: {final.output_text}")
-else:
-    # OpenAI answered directly without needing the tool
-    print(f"Assistant: {response.output_text}")
+print(f"Assistant: {final.output_text}")
